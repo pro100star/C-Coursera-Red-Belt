@@ -4,7 +4,7 @@
 
 using namespace std;
 
-#define PRINT_VALUES(out, x, y) { out << (x) << endl; out << (y) << endl; }
+#define PRINT_VALUES(out, x, y) { out << (x) << endl; out << (y) << endl; } if (false)
 
 int main() {
     TestRunner tr;
