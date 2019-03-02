@@ -1,89 +1,96 @@
 #include <iostream>
-#include <set>
 #include <map>
 #include <queue>
-#include <vector>
 
-class HotelManager {
+struct Event {
+    Event(size_t id_, long long time_, size_t count_) : id(id_), time(time_), count(count_) {}
+
+    size_t id;
+    long long time;
+    size_t count;
+};
+
+class Hotel {
 public:
-    HotelManager() = default;
+    Hotel() = default;
 
-    void Book(long long time, std::string& name, size_t id, size_t count) {
+private:
+    void Update(long long time) {
         current_time = time;
-        rooms_count[name] += count;
-        clients[name].push({time, {id, count}});
-        ++used[name][id];
+        while (!events.empty() && events.front().time <= current_time - 86400) {
+            if (clients[events.front().id] == 1) {
+                clients.erase(events.front().id);
+            } else {
+                --clients[events.front().id];
+            }
 
-        for (auto& hotel : clients) {
-            std::map<size_t, size_t>& hotel_used = used[hotel.first];
-            size_t k = 0;
-            std::map<size_t, size_t> del;
-            while (!hotel.second.empty() && hotel.second.front().first <= current_time - 86400) {
-                ++del[hotel.second.front().second.first];
-                k += hotel.second.front().second.second;
-                hotel.second.pop();
-            }
-            for (auto& d : del) {
-                hotel_used[d.first] -= d.second;
-                if (hotel_used[d.first] == 0) {
-                    hotel_used.erase(d.first);
-                }
-            }
-            rooms_count[hotel.first] -= k;
+            rooms -= events.front().count;
+            events.pop();
         }
     }
 
-    size_t getClients(std::string& name) {
-        return used[name].size();
+public:
+    void Book(Event& e) {
+        ++clients[e.id];
+        events.push(e);
+        rooms += e.count;
+
+        Update(e.time);
     }
 
-    size_t getRooms(std::string& name) {
-        return rooms_count[name];
-    };
+    size_t getClients(long long time) {
+        Update(time);
+        return clients.size();
+    }
+
+    size_t getRooms(long long time) {
+        Update(time);
+        return rooms;
+    }
 
 private:
-    std::map<std::string, std::queue<std::pair<long long, std::pair<size_t, size_t>>>> clients;
-    std::map<std::string, size_t> rooms_count;
-    std::map<std::string, std::map<size_t, size_t>> used;
     long long current_time = -1'000000'000000'000000;
+    std::map<size_t, size_t> clients;
+    std::queue<Event> events;
+    size_t rooms = 0;
 };
 
-void Book(HotelManager& hm) {
-    long long time;
-    std::cin >> time;
-    std::string name;
-    std::cin >> name;
-    size_t id;
-    std::cin >> id;
-    size_t count;
-    std::cin >> count;
-    hm.Book(time, name, id, count);
-}
-
 int main() {
-    //std::ios::sync_with_stdio(false);
-    //std::cin.tie(nullptr);
+    std::ios::sync_with_stdio(false);
+    std::cin.tie(nullptr);
 
     size_t q;
     std::cin >> q;
-    HotelManager hm = {};
+    std::map<std::string, Hotel> hotels;
+    long long current_time = -1'000000'000000'000000;
 
     for (size_t i = 0; i < q; ++i) {
         std::string query;
         std::cin >> query;
         if (query == "BOOK") {
-            Book(hm);
+            long long time;
+            std::cin >> time;
+            current_time = time;
+            std::string name;
+            std::cin >> name;
+            size_t id;
+            std::cin >> id;
+            size_t count;
+            std::cin >> count;
+            Event e(id, time, count);
+            hotels[name].Book(e);
         } else {
             std::string name;
             std::cin >> name;
             size_t res;
             if (query == "CLIENTS") {
-                res = hm.getClients(name);
+                res = hotels[name].getClients(current_time);
             } else {
-                res = hm.getRooms(name);
+                res = hotels[name].getRooms(current_time);
             }
             std::cout << res << '\n';
         }
     }
     return 0;
 }
+
